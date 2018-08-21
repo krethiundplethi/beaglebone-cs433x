@@ -1,0 +1,116 @@
+/*
+ * Copyright (C) 2012 Texas Instruments Incorporated - http://www.ti.com/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common.dtsi"
+/* #include "am33xx-overlay-edma-fix.dtsi" */
+
+/* pruss: pick one: */
+
+/*
+ * /etc/modprobe.d/pruss-blacklist.conf
+ *
+ * blacklist uio_pruss
+ */
+
+#include "am33xx-pruss-rproc.dtsi"
+
+/*
+ * /etc/modprobe.d/pruss-blacklist.conf
+ *
+ * blacklist pruss
+ * blacklist pruss_intc
+ * blacklist pru-rproc
+ */
+
+/* #include "am33xx-pruss-uio.dtsi" */
+
+/ {
+	model = "TI AM335x BeagleBone";
+	compatible = "ti,am335x-bone", "ti,am33xx";
+};
+
+&ldo3_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <3300000>;
+	regulator-always-on;
+};
+
+
+&mmc1 {
+	vmmc-supply = <&ldo3_reg>;
+};
+
+&sgx {
+	status = "okay";
+};
+
+
+&am33xx_pinmux {
+        mcasp0_pins: mcasp0_pins {
+                pinctrl-single,pins = <
+                        AM33XX_IOPAD(0x998, PIN_OUTPUT | MUX_MODE0) /* mcasp0_axr0 */
+                        AM33XX_IOPAD(0x9AC, PIN_OUTPUT_PULLDOWN | MUX_MODE0) /* mcasp0_ahcklx.mcasp0_ahclkx */
+                        AM33XX_IOPAD(0x994, PIN_OUTPUT | MUX_MODE0) /* mcasp0_fsx.mcasp0_fsx */
+                        AM33XX_IOPAD(0x990, PIN_OUTPUT | MUX_MODE0) /* mcasp0_aclkx.mcasp0_aclkx */
+                >;
+        };
+};
+
+&mcasp0 {
+        #sound-dai-cells = <0>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&mcasp0_pins>;
+        status = "okay";
+        op-mode = <0>;  
+        tdm-slots = <2>;
+        serial-dir = <  
+                        1 0 0 0
+                >;
+        tx-num-evt = <32>;
+        rx-num-evt = <32>;
+};
+
+
+/ {
+	cs433x: cs433x {
+		#sound-dai-cells = <0>;
+		status = "okay";
+		compatible = "cs,cs433x-dac";
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		status = "okay";
+		simple-audio-card,name = "TI BeagleBone Hacked Audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&dailink0_master>;
+		simple-audio-card,frame-master = <&dailink0_master>;
+                simple-audio-card,mclk-fs = <512>;
+                simple-audio-card,widgets = "Speaker", "External Speaker";
+                simple-audio-card,routing = "External Speaker", "LINE_OUT";
+
+		dailink0_master: simple-audio-card,cpu {
+			sound-dai = <&mcasp0>;
+			system-clock-frequency = <24000000>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&cs433x 0>;
+		};
+	};
+};
+
+
+/ {
+    chosen {
+        bootargs = "console=ttyS0,115200n8 root=/dev/mmcblk0p2 ro fixrtc rootfstype=ext4 rootwait";
+    };
+};
+
